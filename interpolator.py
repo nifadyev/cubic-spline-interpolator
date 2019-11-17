@@ -1,4 +1,7 @@
-import math
+"""
+"""
+from dataclasses import dataclass
+from bisect import bisect, bisect_left
 import matplotlib.pyplot as plt
 import numpy as np
 from scipy.interpolate import CubicSpline
@@ -24,80 +27,165 @@ from scipy.interpolate import CubicSpline
 # https://docs.scipy.org/doc/scipy-0.18.1/reference/generated/scipy.interpolate.CubicSpline.html
 # https://docs.scipy.org/doc/scipy/reference/tutorial/interpolate.html
 
-# ! Use dataclass
-# class SplineTuple:
-#     def __init__(self, a, b, c, d, x):
-#         self.a = a
-#         self.b = b
-#         self.c = c
-#         self.d = d
-#         self.x = x
+# TODO: добавить вывод промежуточной инфы
+# TODO: добавить задание шага между х
+# TODO: добавить точность (погрешность) max((f(x_i) - s(x_i)))
+# TODO: добавить type hints
 
-class CubeSplineInterpolator():
-
-    @staticmethod
-    def f(x):
-        """ Basic function to get values in specified interval."""
-        if not -1 <= x <= 1:
-            print('x should be more or equal than -1 and less or equal than 1')
-            return
-
-        # sign = -1 if -1 <= x <= 0 else 1
-        sign = -1 if -1 <= x <= 0.5 else 1
-        return sign * x**3 + 3 * x**2
-
-        # return math.cos(x**2 / 7.0)
-
-    @staticmethod
-    def df(x):
-        """ First function derivative."""
-
-        sign = -1 if -1 <= x <= 0.5 else 1
-        return sign * 3 * x**2 + 6 * x
-
-    @staticmethod
-    def d2f(x):
-        """ Second function derivative."""
-
-        sign = -1 if -1 <= x <= 0.5 else 1
-        return sign * 6 * x + 6
-
-    # @staticmethod
-    # def S(x):
-    #     """Spline."""
-    #     return
-
-
-# Структура, описывающая сплайн на каждом сегменте сетки
-
-
+@dataclass
 class SplineTuple:
-    def __init__(self, a, b, c, d, x):
-        self.a = a
-        self.b = b
-        self.c = c
-        self.d = d
+    """Dataclass for storing coefficients and function arguments."""
+
+    a: float = 0.0
+    b: float = 0.0
+    c: float = 0.0
+    d: float = 0.0
+    x: float = 0.0
+
+
+class CubicSplineInterpolator():
+    """Build cubic spline and interpolate it's values."""
+
+    def __init__(self, x, y):
+        """Initialize class instance with values.
+
+        x -- values.
+        y -- results of function in value x.
+        """
+        # x - узлы сетки, должны быть упорядочены по возрастанию, кратные узлы запрещены
+        # y - значения функции в узлах сетки
         self.x = x
+        self.y = y
+        # Matrix dimension is lines * 5 (coefficient's number)
+        self.lines = len(x)
+
+        self.splines = self.build()
+        # self.interpolate()
+
+    def build(self):
+        """Build cubic spline.
+
+        For finding coefficients tridiagonal matrix algorithm is used.
+        """
+        splines = [
+            SplineTuple(
+                a=self.y[i],
+                b=0.0,
+                c=0.0,
+                d=0.0,
+                x=self.x[i],
+            )
+            for i in range(self.lines)
+        ]
+        # Step is constant
+        # TODO: Rename step to knot
+        step = splines[1].x - splines[0].x
+
+        # Required condition
+        # ? Any other condition
+        splines[0].c = splines[self.lines-1].c = 0.0
+
+        # Calculate `c` coefficients
+        self.solve_equations_system(splines, self.lines, step, self.y)
+
+        # Use backward sweep to simplify calculation process
+        for i in range(self.lines - 1, 0, -1):
+            hi = splines[i].x - splines[i - 1].x
+            splines[i].d = (splines[i].c - splines[i - 1].c) / hi
+            splines[i].b = (
+                hi * (2.0 * splines[i].c + splines[i - 1].c) / 6.0
+                + (y[i] - y[i - 1]) / hi
+            )
+
+        return splines
+
+    # TODO: Rename new_x
+    def interpolate(self, new_x):
+        """Calculate results of interpolated function."""
+        # length = len(new_x)
+        # interpolated_values = []
+        for x in new_x:
+            # if x <= self.splines[0].x:  # Если x меньше точки сетки x[0] - пользуемся первым эл-тов массива
+            #     index = 0
+            # # Если x больше точки сетки x[n - 1] - пользуемся последним эл-том массива
+            # elif x >= self.splines[self.lines - 1].x:
+            # # elif x >= self.splines[-2].x:
+            #     index = self.lines - 1
+            # # index = bisect(self.x, x)
+            # else:
+            #     i = 0
+            #     j = self.lines - 1
+            #     while i + 1 < j:
+            #         k = i + (j - i) // 2
+            #         if x <= self.splines[k].x:
+            #             j = k
+            #         else:
+            #             i = k
+            #     index = j
+            index = bisect_left(self.x, x)
+            # if index == 49:
+            #     index = 44
+            print(f'wrong index {index}')
+            spline = self.splines[index]
+            delta = x - spline.x
+
+            yield (
+                spline.a
+                + spline.b * delta
+                + spline.c * delta**2 / 2.0
+                + spline.d * delta**3 / 6.0
+            )
+
+    # TODO: add same func but for non constant step
+    @staticmethod
+    def solve_equations_system(splines, lines, step, y):
+        """Solve system of equations using tridiagonal matrix algorithm (or Thomas algorithm)."""
+        alpha = np.zeros(lines - 1)
+        beta = np.zeros(lines - 1)
+
+        # Forward sweep - modify coefficients
+        # for i in range(1, lines - 1):
+        #     F = 6.0 * (y[i + 1] - 2.0 * y[i] + y[i - 1]) / step
+        #     z = (step * alpha[i - 1] + 4.0 * step)
+        #     alpha[i] = - step / z
+        #     beta[i] = (F - step * beta[i - 1]) / z
+
+        for i in range(1, lines - 1):
+            hi = splines[i].x - splines[i - 1].x
+            hi1 = splines[i + 1].x - splines[i].x
+            A = hi
+            C = 2.0 * (hi + hi1)
+            B = hi1
+            F = 6.0 * ((y[i + 1] - y[i]) / hi1 - (y[i] - y[i - 1]) / hi)
+            z = (A * alpha[i - 1] + C)
+            alpha[i] = -B / z
+            beta[i] = (F - A * beta[i - 1]) / z
+
+        # Backward sweep - produce the solution
+        for i in range(lines - 2, 0, -1):
+            splines[i].c = alpha[i] * splines[i + 1].c + beta[i]
+
 
 # Построение сплайна
 # x - узлы сетки, должны быть упорядочены по возрастанию, кратные узлы запрещены
 # y - значения функции в узлах сетки
 # n - количество узлов сетки
-
-
 def BuildSpline(x, y, n):
     # Инициализация массива сплайнов
-    splines = [SplineTuple(0, 0, 0, 0, 0) for _ in range(0, n)]
-    for i in range(0, n):
+    splines = [SplineTuple() for _ in range(n)]
+    for i in range(n):
         splines[i].x = x[i]
         splines[i].a = y[i]
 
+    # Required condition
     splines[0].c = splines[n - 1].c = 0.0
 
     # Решение СЛАУ относительно коэффициентов сплайнов c[i] методом прогонки для трехдиагональных матриц
     # Вычисление прогоночных коэффициентов - прямой ход метода прогонки
-    alpha = [0.0 for _ in range(0, n - 1)]
-    beta = [0.0 for _ in range(0, n - 1)]
+    # alpha = [0.0 for _ in range(0, n - 1)]
+    # beta = [0.0 for _ in range(0, n - 1)]
+    alpha = np.zeros(n - 1)
+    beta = np.zeros(n - 1)
 
     for i in range(1, n - 1):
         hi = x[i] - x[i - 1]
@@ -118,8 +206,10 @@ def BuildSpline(x, y, n):
     for i in range(n - 1, 0, -1):
         hi = x[i] - x[i - 1]
         splines[i].d = (splines[i].c - splines[i - 1].c) / hi
-        splines[i].b = hi * (2.0 * splines[i].c +
-                             splines[i - 1].c) / 6.0 + (y[i] - y[i - 1]) / hi
+        splines[i].b = (
+            hi * (2.0 * splines[i].c + splines[i - 1].c) / 6.0
+            + (y[i] - y[i - 1]) / hi
+        )
     return splines
 
 
@@ -129,13 +219,15 @@ def Interpolate(splines, x):
         return None  # Если сплайны ещё не построены - возвращаем NaN
 
     n = len(splines)
-    s = SplineTuple(0, 0, 0, 0, 0)
+    s = SplineTuple()
 
     if x <= splines[0].x:  # Если x меньше точки сетки x[0] - пользуемся первым эл-тов массива
         s = splines[0]
+        print(f'valid index 0')
     # Если x больше точки сетки x[n - 1] - пользуемся последним эл-том массива
     elif x >= splines[n - 1].x:
         s = splines[n - 1]
+        print(f'valid index {n-1}')
     else:  # Иначе x лежит между граничными точками сетки - производим бинарный поиск нужного эл-та массива
         i = 0
         j = n - 1
@@ -145,6 +237,7 @@ def Interpolate(splines, x):
                 j = k
             else:
                 i = k
+        print(f'valid index {j}')
         s = splines[j]
 
     dx = x - s.x
@@ -165,30 +258,55 @@ def Interpolate(splines, x):
 
 if __name__ == '__main__':
 
-    x = np.linspace(0, 10, 50)
+    x = np.linspace(0, 1, 50)
     # print(x)
-    y = np.sin(x+10)
+    y = x * np.sin(x) / (1 + x**2)
     # plt.scatter(x, y)
     plt.plot(x, y, label='function')
 
     spline = BuildSpline(x, y, len(x))
-    x_new = np.linspace(0, 10, 10)
-    plt.plot(x_new, [Interpolate(spline, x_i) for x_i in x_new], label='cubic')
+    x_new = np.linspace(0, 1, 10)
+    right = [Interpolate(spline, x_i) for x_i in x_new]
+    plt.plot(x_new, right, label='cubic')
+
+    custom_spline = CubicSplineInterpolator(x, y)
+    interp = list(custom_spline.interpolate(x_new))
+    # interp = [Interpolate(custom_spline.splines, x_i) for x_i in x_new]
+    count = 0
+    for i in range(len(x_new)):
+        if interp[i] != right[i]:
+            print(f'{right[i]=} {interp[i]=}')
+            count += 1
+
+    # for i in range(len(x)):
+    #     if spline[i].x != custom_spline.splines[i].x:
+    #         print('fsdg')
+    print(f'{len(x_new)=} {count=}')
+    for i in range(len(x)):
+        if spline[i].a != custom_spline.splines[i].a:
+            print('a')
+        elif spline[i].b != custom_spline.splines[i].b:
+            print('b')
+        elif spline[i].c != custom_spline.splines[i].c:
+            print('c')
+        elif spline[i].d != custom_spline.splines[i].d:
+            print('d')
+    plt.plot(x_new, interp, label='custom')
     # plt.plot(x, y, label='func')
     plt.legend()
 
-    # x = np.arange(10)
-    # y = np.sin(x)
-    cs = CubicSpline(x, y)
-    # xs = np.arange(-0.5, 9.6, 0.1)
-    # plt.figure(figsize=(6.5, 4))
-    plt.figure()
-    # plt.plot(x, y, 'o', label='data')
-    plt.plot(x, np.sin(x+10), label='true')
-    plt.plot(x_new, cs(x_new), label="S")
-    # plt.plot(x_new, cs(x_new, 1), label="S'")
-    # plt.plot(x_new, cs(x_new, 2), label="S''")
-    # plt.plot(x_new, cs(x_new, 3), label="S'''")
-    # plt.xlim(-0.5, 9.5)
-    plt.legend(loc='lower left', ncol=2)
+    # # x = np.arange(10)
+    # # y = np.sin(x)
+    # cs = CubicSpline(x, y)
+    # # xs = np.arange(-0.5, 9.6, 0.1)
+    # # plt.figure(figsize=(6.5, 4))
+    # plt.figure()
+    # # plt.plot(x, y, 'o', label='data')
+    # plt.plot(x, x * np.sin(x) / (1 + x**2), label='true')
+    # plt.plot(x_new, cs(x_new), label="S")
+    # # plt.plot(x_new, cs(x_new, 1), label="S'")
+    # # plt.plot(x_new, cs(x_new, 2), label="S''")
+    # # plt.plot(x_new, cs(x_new, 3), label="S'''")
+    # # plt.xlim(-0.5, 9.5)
+    # plt.legend(loc='lower left', ncol=2)
     plt.show()
