@@ -1,10 +1,11 @@
 """
 """
 from dataclasses import dataclass
+from itertools import islice
 from bisect import bisect_left
 import numpy as np
 
-# TODO: добавить вывод промежуточной инфы
+
 # TODO: добавить задание шага между х
 # TODO: добавить точность (погрешность) max((f(x_i) - s(x_i)))
 # TODO: добавить type hints
@@ -102,6 +103,17 @@ class CubicSplineInterpolator():
         sequence -- values, usually from the same interval as origin values.
 
         Yields -- interpolated value in specified point.
+        Args:
+        ----
+            n: the number to get the square root of.
+        Returns:
+        --------
+            the square root of n.
+        Raises:
+        -------
+            TypeError: if n is not a number.
+            ValueError: if n is negative.
+
         """
         for x in sequence:
             # Use binary search to find closest value from `self.x`
@@ -114,4 +126,39 @@ class CubicSplineInterpolator():
                 + spline.b * delta
                 + spline.c * delta**2 / 2.0
                 + spline.d * delta**3 / 6.0
+            )
+
+    def print_calculations(self, new_values, interpolated_results):
+        print('Function arguments and results:\n')
+        self.print_args_and_results(self.x, self.y)
+
+        print('\nNew arguments and interpolated results:\n')
+        self.print_args_and_results(new_values, interpolated_results)
+
+        print('\nCoefficients on each step:\n')
+        self.print_coefficients(new_values)
+
+    def print_args_and_results(self, args, solutions):
+        """Pretty print `x` values and results of function is each `x`."""
+        # Show only first 20 values and results
+        values = " | ".join(f'{value:.3f}' for value in islice(args, 20))
+        results = " | ".join(f'{result:.3f}' for result in islice(solutions, 20))
+        vertical_line = '-' * (len(values) + len(' x | '))
+
+        print(f' x | {values}')
+        print(vertical_line)
+        print(f' y | {results}')
+
+    def print_coefficients(self, x):
+        """Pretty print spline coefficients on each step."""
+        table_header = 'Step|    x    |    a    |    b    |    c    |    d    '
+
+        print(table_header)
+        print('-' * len(table_header))
+
+        for step_number, spline in enumerate(islice(self.splines, 10), start=1):
+            # Format coeffs to max 7 chars length and 3 digits after float
+            print(
+                f' {step_number:2} | {next(x):7.3f} | {spline.a:7.3f} |'
+                f' {spline.b:7.3f} | {spline.c:7.3f} | {spline.d:7.3f}'
             )
