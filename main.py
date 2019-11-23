@@ -13,6 +13,7 @@ from scipy.interpolate import CubicSpline
 def main(range_start, range_end, step):
     x = np.linspace(range_start, range_end, (range_end - range_start) / 0.25)
     y = x * np.sin(x) / (1 + x**2)
+    func = lambda value: value * np.sin(value) / (1 + value**2)
     plt.plot(x, y, label='function')
 
     x_new = np.linspace(range_start, range_end, (range_end - range_start) / step)
@@ -20,10 +21,7 @@ def main(range_start, range_end, step):
     custom_spline = CubicSplineInterpolator(x, y)
     interp = list(custom_spline.interpolate(x_new))
     print('Function: x * sin(x) / (1 + x * x)\n')
-    # custom_spline.print_args_and_results()
-    # custom_spline.print_interpolated_results(iter(x_new), interp)
-    # custom_spline.print_coefficients(iter(x_new))
-    custom_spline.print_calculations(iter(x_new), interp)
+    custom_spline.print_calculations(x_new, interp, func)
     # print(f'{len(x_new)=} {count=}')
 
     plt.plot(x_new, interp, label='custom')

@@ -6,8 +6,7 @@ from bisect import bisect_left
 import numpy as np
 
 
-# TODO: добавить точность (погрешность) max((f(x_i) - s(x_i)))
-# TODO: добавить type hints
+# TODO: Add type hints
 
 @dataclass
 class SplineTuple:
@@ -127,7 +126,7 @@ class CubicSplineInterpolator():
                 + spline.d * delta**3 / 6.0
             )
 
-    def print_calculations(self, new_values, interpolated_results):
+    def print_calculations(self, new_values, interpolated_results, function):
         print('Function arguments and results:\n')
         self.print_args_and_results(self.x, self.y)
 
@@ -135,13 +134,18 @@ class CubicSplineInterpolator():
         self.print_args_and_results(new_values, interpolated_results)
 
         print('\nCoefficients on each step:\n')
-        self.print_coefficients(new_values)
+        self.print_coefficients(iter(new_values))
+
+        error = self.get_interpolation_error(new_values, interpolated_results, function)
+        print(f'\nInterpolation error: {error:.5f}')
 
     def print_args_and_results(self, args, solutions):
         """Pretty print `x` values and results of function is each `x`."""
+        vals = islice(args, 20) if len(args) > 20 else args
+        rslts = islice(solutions, 20) if len(solutions) > 20 else solutions
         # Show only first 20 values and results
-        values = " | ".join(f'{value:6.3f}' for value in islice(args, 20))
-        results = " | ".join(f'{result:6.3f}' for result in islice(solutions, 20))
+        values = " | ".join(f'{value:6.3f}' for value in vals)
+        results = " | ".join(f'{result:6.3f}' for result in rslts)
         vertical_line = '-' * (len(values) + len(' x | '))
 
         print(f' x | {values}')
@@ -151,13 +155,18 @@ class CubicSplineInterpolator():
     def print_coefficients(self, x):
         """Pretty print spline coefficients on each step."""
         table_header = 'Step|    x    |    a    |    b    |    c    |    d    '
+        spls = islice(self.splines, 10) if len(self.splines) > 10 else self.splines[:-1]
 
         print(table_header)
         print('-' * len(table_header))
 
-        for step_number, spline in enumerate(islice(self.splines, 10), start=1):
+        for step_number, spline in enumerate(spls, start=1):
             # Format coeffs to max 7 chars length and 3 digits after float
             print(
                 f' {step_number:2} | {next(x):7.3f} | {spline.a:7.3f} |'
                 f' {spline.b:7.3f} | {spline.c:7.3f} | {spline.d:7.3f}'
             )
+
+    def get_interpolation_error(self, arguments, interpolated_results, function):
+        """Max substitution between function result and interpolated result in i-th x."""
+        return max(function(arg) - next(iter(interpolated_results)) for arg in arguments)
