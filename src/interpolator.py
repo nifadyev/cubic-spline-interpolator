@@ -1,16 +1,18 @@
-"""
-"""
+"""Build cubic spline and interpolate data."""
+
 from dataclasses import dataclass
 from itertools import islice
 from bisect import bisect_left
+
 import numpy as np
 
 
 # TODO: Add type hints
 
+
 @dataclass
-class SplineTuple:
-    """Dataclass for storing coefficients and function arguments."""
+class Spline:
+    """Store coefficients and function arguments."""
 
     a: float = 0.0
     b: float = 0.0
@@ -22,16 +24,20 @@ class SplineTuple:
 class CubicSplineInterpolator():
     """Build cubic spline and interpolate it's values."""
 
-    def __init__(self, x, y):
+    def __init__(self, function_arguments, results, spline_arguments):
         """Initialize class instance with values.
 
-        x -- ascending values.
-        y -- results of function in value x.
+        Arguments:
+        ---------
+            function_arguments -- ascending function arguments.
+            results -- function results.
+            spline_arguments -- ascending spline arguments.
+
         """
-        self.x = x
-        self.y = y
-        # Matrix dimension is lines * 5 (coefficient's number)
-        self.lines = len(x)
+        self.x = function_arguments
+        self.y = results
+        self.spline_arguments = spline_arguments
+        self.lines = len(function_arguments)
 
         self.splines = self.build()
 
@@ -41,7 +47,7 @@ class CubicSplineInterpolator():
         For finding coefficients tridiagonal matrix algorithm is used.
         """
         splines = [
-            SplineTuple(
+            Spline(
                 a=self.y[i],
                 b=0.0,
                 c=0.0,
@@ -95,7 +101,11 @@ class CubicSplineInterpolator():
         for i in range(self.lines - 2, 0, -1):
             splines[i].c = alpha[i] * splines[i + 1].c + beta[i]
 
-    def interpolate(self, sequence):
+    @property
+    def interpolated_data(self):
+        return [self.interpolate(arg) for arg in self.spline_arguments]
+
+    def interpolate(self, value):
         """Calculate interpolated value for each item from specified array.
 
         sequence -- values, usually from the same interval as origin values.
@@ -113,18 +123,17 @@ class CubicSplineInterpolator():
             ValueError: if n is negative.
 
         """
-        for x in sequence:
-            # Use binary search to find closest value from `self.x`
-            index = bisect_left(self.x, x)
-            spline = self.splines[index]
-            delta = x - spline.x
+        # Use binary search to find closest value from `self.x`
+        index = bisect_left(self.x, value)
+        spline = self.splines[index]
+        delta = value - spline.x
 
-            yield (
-                spline.a
-                + spline.b * delta
-                + spline.c * delta**2 / 2.0
-                + spline.d * delta**3 / 6.0
-            )
+        return (
+            spline.a
+            + spline.b * delta
+            + spline.c * delta**2 / 2.0
+            + spline.d * delta**3 / 6.0
+        )
 
     def print_calculations(self, new_values, interpolated_results, function):
         print('Function arguments and results:\n')
