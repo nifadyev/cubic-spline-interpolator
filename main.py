@@ -7,6 +7,9 @@ import click
 
 from src.interpolator import CubicSplineInterpolator
 
+# TODO: move spline_arguments inside class
+# TODO: make property from them
+
 
 def function(argument):
     """Find function's result with specified argument."""
@@ -50,25 +53,28 @@ def main(range_start, range_end, step, compare_default):
     print('Function: x * sin(x) / (1 + x * x)\n')
     spline.print_calculations(spline_arguments, interpolated_values, function)
 
+    plt.figure('Interpolator')
     plt.title('Cubic spline interpolation with tridiagonal matrix algorithm')
     plt.xlabel('x')
     plt.ylabel('y')
+    plt.grid(True)
     plt.plot(function_arguments, results, label='function')
     plt.plot(spline_arguments, interpolated_values, label='spline')
-    plt.legend()
 
     if compare_default:
-        cs = CubicSpline(x, y)
-        # plt.figure(figsize=(6.5, 4))
-        plt.figure()
-        # plt.plot(x, y, 'o', label='data')
-        plt.plot(x, x * np.sin(x) / (1 + x**2), label='true')
-        plt.plot(spline_arguments, cs(spline_arguments), label="S")
-        # plt.plot(spline_arguments, cs(spline_arguments, 1), label="S'")
-        # plt.plot(spline_arguments, cs(spline_arguments, 2), label="S''")
-        # plt.plot(spline_arguments, cs(spline_arguments, 3), label="S'''")
-        plt.xlim(-0.5, 9.5)
-        plt.legend(loc='lower left', ncol=2)
+        scipy_spline = CubicSpline(function_arguments, results)
+        plt.figure('Scipy spline interpolator')
+        # plt.plot(function_arguments, results, 'o', label='data')
+        plt.plot(function_arguments, results, label='function')
+        plt.plot(spline_arguments, scipy_spline(spline_arguments), label="S")
+        # plt.plot(
+        #     spline_arguments, scipy_spline(spline_arguments, 1), label="S'")
+        # plt.plot(
+        #     spline_arguments, scipy_spline(spline_arguments, 2), label="S''")
+        # plt.plot(
+        #     spline_arguments, scipy_spline(spline_arguments, 3), label="S'''")
+
+    plt.legend()
     plt.show()
 
 
