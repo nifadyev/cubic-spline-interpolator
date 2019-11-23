@@ -6,7 +6,6 @@ from bisect import bisect_left
 import numpy as np
 
 
-# TODO: добавить задание шага между х
 # TODO: добавить точность (погрешность) max((f(x_i) - s(x_i)))
 # TODO: добавить type hints
 
@@ -141,8 +140,8 @@ class CubicSplineInterpolator():
     def print_args_and_results(self, args, solutions):
         """Pretty print `x` values and results of function is each `x`."""
         # Show only first 20 values and results
-        values = " | ".join(f'{value:.3f}' for value in islice(args, 20))
-        results = " | ".join(f'{result:.3f}' for result in islice(solutions, 20))
+        values = " | ".join(f'{value:6.3f}' for value in islice(args, 20))
+        results = " | ".join(f'{result:6.3f}' for result in islice(solutions, 20))
         vertical_line = '-' * (len(values) + len(' x | '))
 
         print(f' x | {values}')
