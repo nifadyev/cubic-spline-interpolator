@@ -1,46 +1,74 @@
-"""
-"""
-from src.interpolator import CubicSplineInterpolator
+"""Demonstration of CubicSplineInterpolator usage."""
+
+from scipy.interpolate import CubicSpline
 import matplotlib.pyplot as plt
 import numpy as np
 import click
-from scipy.interpolate import CubicSpline
+
+from src.interpolator import CubicSplineInterpolator
+
+
+def function(argument):
+    """Find function's result with specified argument."""
+    return argument * np.sin(argument) / (1 + argument**2)
+
 
 @click.command()
-@click.option('--range_start', type=float, default=0.0, help='First range\'s value')
-@click.option('--range_end', type=float, default=10.0, help='Last range\'s value')
-@click.option('--step', type=float, default=0.25, help='Step between values in range')
-def main(range_start, range_end, step):
-    x = np.linspace(range_start, range_end, (range_end - range_start) / 0.25)
-    y = x * np.sin(x) / (1 + x**2)
-    func = lambda value: value * np.sin(value) / (1 + value**2)
-    plt.plot(x, y, label='function')
+@click.option(
+    '--range_start', type=float, default=0.0, help='Left range boundary')
+@click.option(
+    '--range_end', type=float, default=10.0, help='Right range boundary')
+@click.option(
+    '--step', type=float, default=0.25, help='Step between values in range')
+@click.option(
+    '--compare_default/--do_not_compare', default=False,
+    help='Compare custom spline with default scipy spline'
+)
+def main(range_start, range_end, step, compare_default):
+    """Build spline and interpolate it's values.
 
-    x_new = np.linspace(range_start, range_end, (range_end - range_start) / step)
+    Set function and it's function_arguments and use CubicSplineInterpolator
+    to interpolate spline in specified function_arguments.
 
-    custom_spline = CubicSplineInterpolator(x, y)
-    interp = list(custom_spline.interpolate(x_new))
+    Arguments:
+    ---------
+        range_start: left range boundary.
+        range_end: right range boundary.
+        step: step between values in range.
+        compare_default: define if scipy spline should be built.
+
+    """
+    function_arguments = np.linspace(
+        range_start, range_end, (range_end - range_start) / 0.25)
+    spline_arguments = np.linspace(
+        range_start, range_end, (range_end - range_start) / step)
+    results = [function(arg) for arg in function_arguments]
+
+    spline = CubicSplineInterpolator(function_arguments, results)
+    interpolated_values = list(spline.interpolate(spline_arguments))
+
     print('Function: x * sin(x) / (1 + x * x)\n')
-    custom_spline.print_calculations(x_new, interp, func)
-    # print(f'{len(x_new)=} {count=}')
+    spline.print_calculations(spline_arguments, interpolated_values, function)
 
-    plt.plot(x_new, interp, label='custom')
-    # plt.plot(x, y, label='func')
-    # plt.xlim(-0.5, 9.5)
-    # plt.ylim(-0.5, 2.0)
+    plt.title('Cubic spline interpolation with tridiagonal matrix algorithm')
+    plt.xlabel('x')
+    plt.ylabel('y')
+    plt.plot(function_arguments, results, label='function')
+    plt.plot(spline_arguments, interpolated_values, label='spline')
     plt.legend()
 
-    cs = CubicSpline(x, y)
-    # plt.figure(figsize=(6.5, 4))
-    plt.figure()
-    # plt.plot(x, y, 'o', label='data')
-    plt.plot(x, x * np.sin(x) / (1 + x**2), label='true')
-    plt.plot(x_new, cs(x_new), label="S")
-    # plt.plot(x_new, cs(x_new, 1), label="S'")
-    # plt.plot(x_new, cs(x_new, 2), label="S''")
-    # plt.plot(x_new, cs(x_new, 3), label="S'''")
-    plt.xlim(-0.5, 9.5)
-    plt.legend(loc='lower left', ncol=2)
+    if compare_default:
+        cs = CubicSpline(x, y)
+        # plt.figure(figsize=(6.5, 4))
+        plt.figure()
+        # plt.plot(x, y, 'o', label='data')
+        plt.plot(x, x * np.sin(x) / (1 + x**2), label='true')
+        plt.plot(spline_arguments, cs(spline_arguments), label="S")
+        # plt.plot(spline_arguments, cs(spline_arguments, 1), label="S'")
+        # plt.plot(spline_arguments, cs(spline_arguments, 2), label="S''")
+        # plt.plot(spline_arguments, cs(spline_arguments, 3), label="S'''")
+        plt.xlim(-0.5, 9.5)
+        plt.legend(loc='lower left', ncol=2)
     plt.show()
 
 
