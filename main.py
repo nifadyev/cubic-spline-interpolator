@@ -7,9 +7,6 @@ import click
 
 from src.interpolator import CubicSplineInterpolator
 
-# TODO: move spline_arguments inside class
-# TODO: make property from them
-
 
 def function(argument):
     """Find function's result with specified argument."""
@@ -47,11 +44,11 @@ def main(range_start, range_end, step, compare_default):
         range_start, range_end, (range_end - range_start) / step)
     results = [function(arg) for arg in function_arguments]
 
-    spline = CubicSplineInterpolator(function_arguments, results)
-    interpolated_values = list(spline.interpolate(spline_arguments))
+    spline = CubicSplineInterpolator(
+        function_arguments, results, spline_arguments)
 
     print('Function: x * sin(x) / (1 + x * x)\n')
-    spline.print_calculations(spline_arguments, interpolated_values, function)
+    spline.print_calculations(function)
 
     plt.figure('Interpolator')
     plt.title('Cubic spline interpolation with tridiagonal matrix algorithm')
@@ -59,7 +56,7 @@ def main(range_start, range_end, step, compare_default):
     plt.ylabel('y')
     plt.grid(True)
     plt.plot(function_arguments, results, label='function')
-    plt.plot(spline_arguments, interpolated_values, label='spline')
+    plt.plot(spline_arguments, spline.interpolated_data, label='spline')
 
     if compare_default:
         scipy_spline = CubicSpline(function_arguments, results)
