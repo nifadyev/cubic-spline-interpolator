@@ -3,14 +3,19 @@
 from src.interpolator import CubicSplineInterpolator
 import matplotlib.pyplot as plt
 import numpy as np
+import click
 from scipy.interpolate import CubicSpline
 
-if __name__ == '__main__':
-    x = np.linspace(0, 10, 200)
+@click.command()
+@click.option('--range_start', type=float, default=0.0, help='First range\'s value')
+@click.option('--range_end', type=float, default=10.0, help='Last range\'s value')
+@click.option('--step', type=float, default=0.25, help='Step between values in range')
+def main(range_start, range_end, step):
+    x = np.linspace(range_start, range_end, (range_end - range_start) / 0.25)
     y = x * np.sin(x) / (1 + x**2)
     plt.plot(x, y, label='function')
 
-    x_new = np.linspace(0, 10, 500)
+    x_new = np.linspace(range_start, range_end, (range_end - range_start) / step)
 
     custom_spline = CubicSplineInterpolator(x, y)
     interp = list(custom_spline.interpolate(x_new))
@@ -39,3 +44,7 @@ if __name__ == '__main__':
     plt.xlim(-0.5, 9.5)
     plt.legend(loc='lower left', ncol=2)
     plt.show()
+
+
+if __name__ == '__main__':
+    main()
