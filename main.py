@@ -29,14 +29,6 @@ def main(range_start, range_end, step, compare_default):
 
     Set function and it's function_arguments and use CubicSplineInterpolator
     to interpolate spline in specified function_arguments.
-
-    Arguments:
-    ---------
-        range_start: left range boundary.
-        range_end: right range boundary.
-        step: step between values in range.
-        compare_default: define if scipy spline should be built.
-
     """
     function_arguments = np.linspace(
         range_start, range_end, (range_end - range_start) / 0.25)

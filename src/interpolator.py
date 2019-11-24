@@ -8,7 +8,6 @@ import numpy as np
 
 
 # TODO: Add type hints
-# TODO: unify docstrings to numpy standard
 
 
 @dataclass
@@ -28,11 +27,10 @@ class CubicSplineInterpolator():
     def __init__(self, function_arguments, results, spline_arguments):
         """Initialize class instance with values.
 
-        Arguments:
-        ---------
-            function_arguments -- ascending function arguments.
-            results -- function results.
-            spline_arguments -- ascending spline arguments.
+        Args:
+            function_arguments: ascending function arguments.
+            results: function results.
+            spline_arguments: ascending spline arguments.
 
         """
         self.function_arguments = function_arguments
@@ -41,7 +39,8 @@ class CubicSplineInterpolator():
         self.lines = len(function_arguments)
 
         self.splines = self.build()
-        self.interpolated_data = [self.interpolate(arg) for arg in self.spline_arguments]
+        self.interpolated_data = [
+            self.interpolate(arg) for arg in self.spline_arguments]
 
     def build(self):
         """Build cubic spline.
@@ -49,8 +48,7 @@ class CubicSplineInterpolator():
         For finding coefficients tridiagonal matrix algorithm is used.
 
         Returns:
-        --------
-            splines: list of Spline dataclass instances.
+            splines: list of `Spline` dataclass instances.
 
         """
         splines = [
@@ -83,10 +81,9 @@ class CubicSplineInterpolator():
         return splines
 
     def solve_equations_system(self, splines):
-        """Solve system of equations using tridiagonal matrix algorithm (or Thomas algorithm).
+        """Solve system of equations using tridiagonal matrix algorithm.
 
-        Arguments:
-        ---------
+        Args:
             splines: equation system with unknown `c` variables.
 
         """
@@ -113,7 +110,7 @@ class CubicSplineInterpolator():
     def interpolate(self, value):
         """Calculate interpolated value.
 
-        Arguments:
+        Args:
             value: argument to interpolate.
 
         """
@@ -179,7 +176,7 @@ class CubicSplineInterpolator():
             )
 
     def get_interpolation_error(self, function):
-        """Max substitution between function result and interpolated result in i-th x."""
+        """Max diff between function result and interpolated value."""
         return max(
             function(arg) - next(iter(self.interpolated_data))
             for arg in self.spline_arguments
