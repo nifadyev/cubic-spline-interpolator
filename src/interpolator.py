@@ -24,7 +24,7 @@ class Spline:
 class CubicSplineInterpolator():
     """Build cubic spline and interpolate it's values."""
 
-    def __init__(self, function_arguments, results, spline_arguments):
+    def __init__(self, left_boundary, right_boundary, epsilon, steps, function):
         """Initialize class instance with values.
 
         Args:
@@ -33,14 +33,92 @@ class CubicSplineInterpolator():
             spline_arguments: ascending spline arguments.
 
         """
-        self.function_arguments = function_arguments
-        self.results = results
-        self.spline_arguments = spline_arguments
-        self.lines = len(function_arguments)
+        self.left_boundary = left_boundary
+        self.right_boundary = right_boundary
+        self.epsilon = epsilon
+        self.steps = steps
+        self.function = function
 
-        self.splines = self.build()
-        self.interpolated_data = [
-            self.interpolate(arg) for arg in self.spline_arguments]
+        self.args, self.results = self.do_everything()
+
+    def do_everything(self):
+        x_range = [self.left_boundary, self.right_boundary]
+        l = self.left_boundary
+        r = self.right_boundary
+        h = (r - l) / (self.steps - 1)
+
+        splines = []
+        f = []
+        y_max = -np.Infinity
+        y_min = np.Infinity
+
+        for i in range(self.steps):
+            value = l + i * h
+            result = self.function(value)
+
+            f.append(result)
+            splines.append(
+                Spline(
+                    a=result,
+                    b=0.0,
+                    c=0.0,
+                    d=0.0,
+                    x=value,
+                )
+            )
+
+        alpha, beta = [0.0], [0.0]
+        splines[0].c = 0.0
+        splines[self.steps - 1].c = 0.0
+
+        for i in range(1, self.steps - 1):
+            alpha.append(-1 / (4 + alpha[i-1]))
+            beta.append(
+                1 / (4 + alpha[i - 1]) * (6 / (h * h)
+                * (f[i + 1] - 2 * f[i] + f[i - 1]) - beta[i - 1])
+            )
+
+        for i in range(self.steps-2, 0, -1):
+            splines[i].c = alpha[i] * splines[i+1].c + beta[i]
+
+        for i in range(self.steps-1, 0, -1):
+            splines[i].d = (splines[i].c - splines[i - 1].c) / h
+            splines[i].b = (
+                h / 2 * splines[i].c - h**2 / 6 * splines[i].d
+                + (f[i] - f[i-1]) / h
+            )
+
+        args = []
+        results = []
+        epsilon = (x_range[1] - x_range[0]) / 30000
+
+        for i in range(1, len(splines)):
+            x = splines[i - 1].x
+            while x <= splines[i].x:
+                dx = x - splines[i].x
+                current_value = splines[i].a + splines[i].b * dx + splines[i].c / 2 * dx**2 + splines[i].d / 6 * dx**3
+                # dots.append([x, current_value])
+                args.append(x)
+                results.append(current_value)
+                y_max = max(y_max, current_value)
+                y_min = min(y_min, current_value)
+                x += epsilon
+            # x = splines[i].x
+
+        x_diff = x_range[1] - x_range[0]
+        y_diff = y_max - y_min
+
+        print('Function arguments and results:\n')
+        self.print_args_and_results(args, results)
+
+        print('\nCoefficients on each step:\n')
+        self.print_coefficients(splines)
+
+        print(f'\nInterpolation error: {y_diff:.5f}')
+
+        return args, results
+        # return dots
+
 
     def build(self):
         """Build cubic spline.
@@ -126,7 +204,7 @@ class CubicSplineInterpolator():
             + spline.d * delta**3 / 6.0
         )
 
-    def print_calculations(self, function):
+    def print_calculations(self):
         """Print results of various calculations.
 
         They were calculated during building spline and interpolating data.
@@ -158,12 +236,11 @@ class CubicSplineInterpolator():
         print(vertical_line)
         print(f' y | {solutions}')
 
-    def print_coefficients(self):
+    def print_coefficients(self, splines):
         """Pretty print spline coefficients on each step."""
         table_header = 'Step|    x    |    a    |    b    |    c    |    d    '
-        splines_slice = islice(self.splines, 10) if len(self.splines) > 10\
-            else self.splines[:-1]
-        arguments = iter(self.spline_arguments)
+        splines_slice = islice(splines, 10) if len(splines) > 10\
+            else splines[:-1]
 
         print(table_header)
         print('-' * len(table_header))
@@ -171,7 +248,7 @@ class CubicSplineInterpolator():
         for step_number, spline in enumerate(splines_slice, start=1):
             # Format coefficients to 7 chars string with 3 digits after float
             print(
-                f' {step_number:2} | {next(arguments):7.3f} | {spline.a:7.3f}'
+                f' {step_number:2} | {spline.x:7.3f} | {spline.a:7.3f}'
                 f' | {spline.b:7.3f} | {spline.c:7.3f} | {spline.d:7.3f}'
             )
 
