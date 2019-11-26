@@ -2,7 +2,6 @@
 
 from dataclasses import dataclass
 from itertools import islice
-from bisect import bisect_left
 
 import numpy as np
 
@@ -24,7 +23,8 @@ class Spline:
 class CubicSplineInterpolator():
     """Build cubic spline and interpolate it's values."""
 
-    def __init__(self, left_boundary, right_boundary, epsilon, steps, function):
+    def __init__(
+        self, left_boundary, right_boundary, epsilon, intervals, function):
         """Initialize class instance with values.
 
         Args:
@@ -36,27 +36,31 @@ class CubicSplineInterpolator():
         self.left_boundary = left_boundary
         self.right_boundary = right_boundary
         self.epsilon = epsilon
-        self.steps = steps
+        self.intervals = intervals
         self.function = function
 
-        self.args, self.results = self.do_everything()
+        self.splines = self.build()
+        self.args, self.results = self.interpolate()
 
-    def do_everything(self):
-        x_range = [self.left_boundary, self.right_boundary]
-        l = self.left_boundary
-        r = self.right_boundary
-        h = (r - l) / (self.steps - 1)
+    def build(self):
+        """Build cubic splines.
+
+        For finding coefficients tridiagonal matrix algorithm is used.
+
+        Returns:
+            splines: list of `Spline` dataclass instances.
+
+        """
+        step = (self.right_boundary - self.left_boundary) / (self.intervals - 1)
 
         splines = []
-        f = []
-        y_max = -np.Infinity
-        y_min = np.Infinity
+        function_results = []
 
-        for i in range(self.steps):
-            value = l + i * h
+        for i in range(self.intervals):
+            value = self.left_boundary + i * step
             result = self.function(value)
 
-            f.append(result)
+            function_results.append(result)
             splines.append(
                 Spline(
                     a=result,
@@ -67,142 +71,72 @@ class CubicSplineInterpolator():
                 )
             )
 
-        alpha, beta = [0.0], [0.0]
-        splines[0].c = 0.0
-        splines[self.steps - 1].c = 0.0
+        # Required conditions
+        splines[0].c = splines[self.intervals - 1].c = 0.0
 
-        for i in range(1, self.steps - 1):
-            alpha.append(-1 / (4 + alpha[i-1]))
-            beta.append(
-                1 / (4 + alpha[i - 1]) * (6 / (h * h)
-                * (f[i + 1] - 2 * f[i] + f[i - 1]) - beta[i - 1])
-            )
-
-        for i in range(self.steps-2, 0, -1):
-            splines[i].c = alpha[i] * splines[i+1].c + beta[i]
-
-        for i in range(self.steps-1, 0, -1):
-            splines[i].d = (splines[i].c - splines[i - 1].c) / h
-            splines[i].b = (
-                h / 2 * splines[i].c - h**2 / 6 * splines[i].d
-                + (f[i] - f[i-1]) / h
-            )
-
-        args = []
-        results = []
-        epsilon = (x_range[1] - x_range[0]) / 30000
-
-        for i in range(1, len(splines)):
-            x = splines[i - 1].x
-            while x <= splines[i].x:
-                dx = x - splines[i].x
-                current_value = splines[i].a + splines[i].b * dx + splines[i].c / 2 * dx**2 + splines[i].d / 6 * dx**3
-                # dots.append([x, current_value])
-                args.append(x)
-                results.append(current_value)
-                y_max = max(y_max, current_value)
-                y_min = min(y_min, current_value)
-                x += epsilon
-            # x = splines[i].x
-
-        x_diff = x_range[1] - x_range[0]
-        y_diff = y_max - y_min
-
-        print('Function arguments and results:\n')
-        self.print_args_and_results(args, results)
-
-        print('\nCoefficients on each step:\n')
-        self.print_coefficients(splines)
-
-        print(f'\nInterpolation error: {y_diff:.5f}')
-
-        return args, results
-        # return dots
-
-
-    def build(self):
-        """Build cubic spline.
-
-        For finding coefficients tridiagonal matrix algorithm is used.
-
-        Returns:
-            splines: list of `Spline` dataclass instances.
-
-        """
-        splines = [
-            Spline(
-                a=self.results[i],
-                b=0.0,
-                c=0.0,
-                d=0.0,
-                x=self.function_arguments[i],
-            )
-            for i in range(self.lines)
-        ]
-
-        # Required condition
-        splines[0].c = splines[self.lines-1].c = 0.0
-
-        # Calculate `c` coefficients
-        self.solve_equations_system(splines)
+        self.solve_equations_system(splines, step, function_results)
 
         # Use backward sweep to simplify calculation process
-        for i in range(self.lines - 1, 0, -1):
-            # Interval between nearby values
-            delta = splines[i].x - splines[i - 1].x
-            splines[i].d = (splines[i].c - splines[i - 1].c) / delta
+        for i in range(self.intervals-1, 0, -1):
+            splines[i].d = (splines[i].c - splines[i - 1].c) / step
             splines[i].b = (
-                delta * (2.0 * splines[i].c + splines[i - 1].c) / 6.0
-                + (self.results[i] - self.results[i - 1]) / delta
+                step / 2 * splines[i].c
+                - step**2 / 6 * splines[i].d
+                + (function_results[i] - function_results[i-1]) / step
             )
 
         return splines
 
-    def solve_equations_system(self, splines):
+    def solve_equations_system(self, splines, step, function_results):
         """Solve system of equations using tridiagonal matrix algorithm.
 
         Args:
             splines: equation system with unknown `c` variables.
 
         """
-        alpha = np.zeros(self.lines - 1)
-        beta = np.zeros(self.lines - 1)
+        alpha = np.zeros(self.intervals - 1)
+        beta = np.zeros(self.intervals - 1)
 
         # Forward sweep - modify coefficients
-        for i in range(1, self.lines - 1):
-            current_delta = splines[i].x - splines[i - 1].x
-            next_delta = splines[i + 1].x - splines[i].x
-            F = 6.0 * (
-                (self.results[i + 1] - self.results[i]) / next_delta
-                - (self.results[i] - self.results[i - 1]) / current_delta
+        for i in range(1, self.intervals - 1):
+            alpha[i] = (-1 / (4 + alpha[i-1]))
+            beta[i] = (
+                1 / (4 + alpha[i-1])
+                * (6 / step**2
+                   * (function_results[i + 1] - 2 * function_results[i]
+                      + function_results[i - 1])
+                   - beta[i - 1])
             )
-            divider = current_delta * (alpha[i - 1] + 2.0 * (1 + next_delta))
-
-            alpha[i] = - next_delta / divider
-            beta[i] = (F - current_delta * beta[i - 1]) / divider
 
         # Backward sweep - produce the solution
-        for i in range(self.lines - 2, 0, -1):
-            splines[i].c = alpha[i] * splines[i + 1].c + beta[i]
+        for i in range(self.intervals-2, 0, -1):
+            splines[i].c = alpha[i] * splines[i+1].c + beta[i]
 
-    def interpolate(self, value):
+    def interpolate(self):
         """Calculate interpolated value.
 
         Args:
             value: argument to interpolate.
 
         """
-        # Use binary search to find closest value from `function_arguments`
-        index = bisect_left(self.function_arguments, value)
-        spline = self.splines[index]
-        delta = value - spline.x
+        args, results = [], []
 
-        return (
-            spline.a
-            + spline.b * delta
-            + spline.c * delta**2 / 2.0
-            + spline.d * delta**3 / 6.0
-        )
+        for i in range(1, self.intervals):
+            current_argument = self.splines[i - 1].x
+            while current_argument <= self.splines[i].x:
+                current_interval = current_argument - self.splines[i].x
+                current_result = (
+                    self.splines[i].a
+                    + self.splines[i].b * current_interval
+                    + self.splines[i].c / 2 * current_interval**2
+                    + self.splines[i].d / 6 * current_interval**3
+                )
+
+                args.append(current_argument)
+                results.append(current_result)
+                current_argument += self.epsilon
+
+        return args, results
 
     def print_calculations(self):
         """Print results of various calculations.
@@ -210,37 +144,39 @@ class CubicSplineInterpolator():
         They were calculated during building spline and interpolating data.
         """
         print('Function arguments and results:\n')
-        self.print_args_and_results(self.function_arguments, self.results)
+        function_results = [self.function(arg) for arg in self.args]
+        self.print_args_and_results(self.args, function_results)
 
         print('\nSpline arguments and interpolated values:\n')
-        self.print_args_and_results(
-            self.spline_arguments, self.interpolated_data)
+        self.print_args_and_results(self.args, self.results)
 
         print('\nCoefficients on each step:\n')
         self.print_coefficients()
 
-        error = self.get_interpolation_error(function)
+        error = self.get_interpolation_error()
         print(f'\nInterpolation error: {error:.5f}')
 
     @staticmethod
     def print_args_and_results(args, results):
-        """Pretty print arguments and function results."""
-        args_slice = islice(args, 20) if len(args) > 20 else args
-        results_slice = islice(results, 20) if len(results) > 20 else results
-        # Show only first 20 values and results
-        values = " | ".join(f'{value:6.3f}' for value in args_slice)
-        solutions = " | ".join(f'{result:6.3f}' for result in results_slice)
+        """Pretty print arguments and results.
+
+        Results can be produced by function or by interpolation.
+        """
+        # Show only first 15 values and results
+        args_slice = islice(args, 15)
+        results_slice = islice(results, 15)
+        values = " | ".join(f'{value:7.3f}' for value in args_slice)
+        solutions = " | ".join(f'{result:7.3f}' for result in results_slice)
         vertical_line = '-' * (len(values) + len(' x | '))
 
         print(f' x | {values}')
         print(vertical_line)
         print(f' y | {solutions}')
 
-    def print_coefficients(self, splines):
+    def print_coefficients(self):
         """Pretty print spline coefficients on each step."""
         table_header = 'Step|    x    |    a    |    b    |    c    |    d    '
-        splines_slice = islice(splines, 10) if len(splines) > 10\
-            else splines[:-1]
+        splines_slice = islice(self.splines, 10)
 
         print(table_header)
         print('-' * len(table_header))
@@ -252,9 +188,10 @@ class CubicSplineInterpolator():
                 f' | {spline.b:7.3f} | {spline.c:7.3f} | {spline.d:7.3f}'
             )
 
-    def get_interpolation_error(self, function):
+    def get_interpolation_error(self):
         """Max diff between function result and interpolated value."""
+        res = iter(self.results)
         return max(
-            function(arg) - next(iter(self.interpolated_data))
-            for arg in self.spline_arguments
+            self.function(arg) - next(res)
+            for arg in self.args
         )
