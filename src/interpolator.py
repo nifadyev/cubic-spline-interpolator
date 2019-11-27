@@ -24,13 +24,18 @@ class CubicSplineInterpolator():
     """Build cubic spline and interpolate it's values."""
 
     def __init__(
-        self, left_boundary, right_boundary, epsilon, intervals, function):
+            self, left_boundary, right_boundary, epsilon, intervals, function):
         """Initialize class instance with values.
 
-        Args:
-            function_arguments: ascending function arguments.
-            results: function results.
-            spline_arguments: ascending spline arguments.
+        Attributes:
+            left_boundary: left range boundary.
+            right_boundary: right range boundary.
+            epsilon: step between arguments.
+            intervals: number of intervals in range.
+            function: ascending spline arguments.
+            splines: splines with known coefficients.
+            args: all values in range.
+            results: interpolated values.
 
         """
         self.left_boundary = left_boundary
@@ -77,12 +82,12 @@ class CubicSplineInterpolator():
         self.solve_equations_system(splines, step, function_results)
 
         # Use backward sweep to simplify calculation process
-        for i in range(self.intervals-1, 0, -1):
+        for i in range(self.intervals - 1, 0, -1):
             splines[i].d = (splines[i].c - splines[i - 1].c) / step
             splines[i].b = (
                 step / 2 * splines[i].c
                 - step**2 / 6 * splines[i].d
-                + (function_results[i] - function_results[i-1]) / step
+                + (function_results[i] - function_results[i - 1]) / step
             )
 
         return splines
@@ -92,6 +97,8 @@ class CubicSplineInterpolator():
 
         Args:
             splines: equation system with unknown `c` variables.
+            step: difference between neighbor x values in spline.
+            function_results: results of function with specified arguments.
 
         """
         alpha = np.zeros(self.intervals - 1)
@@ -113,10 +120,11 @@ class CubicSplineInterpolator():
             splines[i].c = alpha[i] * splines[i+1].c + beta[i]
 
     def interpolate(self):
-        """Calculate interpolated value.
+        """Calculate interpolated values.
 
-        Args:
-            value: argument to interpolate.
+        Returns:
+            args: all values in range.
+            results: interpolated values.
 
         """
         args, results = [], []

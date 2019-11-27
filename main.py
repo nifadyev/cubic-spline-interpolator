@@ -21,12 +21,17 @@ def function(argument):
 @click.option(
     '--range_length', type=int, default=30000, help='Number of values in range')
 @click.option(
-    '--intervals', type=int, default=10, help='Number of invervals')
+    '--intervals', type=int, default=10, help='Number of intervals')
 @click.option(
     '--compare_default/--do_not_compare', default=False,
     help='Compare custom spline with default scipy spline'
 )
 def main(range_start, range_end, range_length, intervals, compare_default):
+    """Build spline and interpolate it's values.
+
+    Set range boundaries for CubicSplineInterpolator
+    to interpolate spline in specified intervals.
+    """
     epsilon = (range_end - range_start) / range_length
     spline = CubicSplineInterpolator(
         range_start, range_end, epsilon, intervals, function)
