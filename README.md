@@ -30,66 +30,64 @@ The script can be run as:
 
 The set of available options are:
 
- * `--range_start`: left range boundary, default=0.0, example: -7.5
+ * `--range_start`: left range boundary, default=-10.0, example: -7.5
  * `--range_end`: right range boundary, default=10.0, example: 5.0
- * `--step`: step between values in range, default=0.25, example: 0.1
+ * `--range_length`: number of values in range, default=30000, example: 1000
+ * `--intervals`: number of intervals, default=10, example: 50
  * `--compare_default/--do_not_compare`: compare custom spline with default `scipy` spline, default=False
 
 ## Example
 
-Set range [0.0, 20.0] with step 0.1
+Set range [-10.0, 20.0] with 50 intervals
 
-`python main.py --range_end 20 --step 0.1`
+`python main.py --range_end 20 --intervals 50
 
 ### Output
 
 Output contains:
  * function
- * first 20 pairs of function arguments and function results
- * first 20 pairs of spline arguments and interpolated values
+ * first 8 pairs of arguments and function results
+ * first 8 pairs of arguments and interpolated values
  * spline coefficients on each step
  * interpolation error
 
 ```bash
-Function: x * sin(x) / (1 + x * x)
-
 Function arguments and results:
 
- x |  0.000 |  0.253 |  0.506 |  0.759 |  1.013 |  1.266 |
-----------------------------------------------------------
- y |  0.000 |  0.060 |  0.195 |  0.332 |  0.424 |  0.464 |
+ x | -10.000 |  -9.999 |  -9.999 |  -9.998 |  -9.997 |  -9.997 |  -9.996 |  -9.995 |
+------------------------------------------------------------------------------------
+ y |  -0.054 |  -0.054 |  -0.054 |  -0.054 |  -0.054 |  -0.054 |  -0.054 |  -0.053 |
 
 Spline arguments and interpolated values:
 
- x |  0.000 |  0.101 |  0.201 |  0.302 |  0.402 |  0.503 |
-----------------------------------------------------------
- y |  0.000 |  0.012 |  0.037 |  0.078 |  0.132 |  0.193 |
-
+ x | -10.000 |  -9.999 |  -9.999 |  -9.998 |  -9.997 |  -9.997 |  -9.996 |  -9.995 |
+------------------------------------------------------------------------------------
+ y |  -0.054 |  -0.054 |  -0.054 |  -0.054 |  -0.053 |  -0.053 |  -0.053 |  -0.053 |
 
 Coefficients on each step:
 
 Step|    x    |    a    |    b    |    c    |    d    
 ------------------------------------------------------
-  1 |   0.000 |   0.000 |   0.000 |   0.000 |   0.000
-  2 |   0.101 |   0.060 |   0.510 |   3.250 |  12.838
-  3 |   0.201 |   0.195 |   0.589 |  -1.006 | -16.811
-  4 |   0.302 |   0.332 |   0.437 |  -0.697 |   1.221
-  5 |   0.402 |   0.424 |   0.222 |  -1.344 |  -2.557
-  6 |   0.503 |   0.464 |   0.029 |  -0.854 |   1.938
-  7 |   0.603 |   0.459 |  -0.120 |  -0.748 |   0.417
-  8 |   0.704 |   0.419 |  -0.225 |  -0.454 |   1.162
-  9 |   0.804 |   0.357 |  -0.292 |  -0.303 |   0.598
- 10 |   0.905 |   0.280 |  -0.328 |  -0.131 |   0.678
+  1 | -10.000 |  -0.054 |   0.000 |   0.000 |   0.000
+  2 |  -7.778 |   0.126 |  -0.031 |  -0.152 |  -0.068
+  3 |  -5.556 |  -0.116 |  -0.095 |   0.094 |   0.111
+  4 |  -3.333 |  -0.052 |   0.172 |   0.146 |   0.023
+  5 |  -1.111 |   0.446 |   0.167 |  -0.150 |  -0.133
+  6 |   1.111 |   0.446 |  -0.167 |  -0.150 |  -0.000
+  7 |   3.333 |  -0.052 |  -0.172 |   0.146 |   0.133
+  8 |   5.556 |  -0.116 |   0.095 |   0.094 |  -0.023
+  9 |   7.778 |   0.126 |   0.031 |  -0.152 |  -0.111
+ 10 |  10.000 |  -0.054 |  -0.137 |   0.000 |   0.068
 
-Interpolation error: 0.46589
+Interpolation error: 0.11198
 ```
 
 ### Plot
 
-#### Full plot
+#### 10 intervals
 
-![](./images/full_plot.png)
+![](./images/default_intervals.png)
 
-#### Detailed part
+#### 30 intervals
 
-![](./images/detailed_plot_part.png)
+![](./images/30_intervals.png)
