@@ -14,14 +14,10 @@ def function(argument):
 
 
 @click.command()
-@click.option(
-    '--range_start', type=float, default=-10.0, help='Left range boundary')
-@click.option(
-    '--range_end', type=float, default=10.0, help='Right range boundary')
-@click.option(
-    '--range_length', type=int, default=30000, help='Number of values in range')
-@click.option(
-    '--intervals', type=int, default=10, help='Number of intervals')
+@click.option('--range_start', type=float, default=-10.0, help='Left range boundary')
+@click.option('--range_end', type=float, default=10.0, help='Right range boundary')
+@click.option('--range_length', type=int, default=30000, help='Number of values in range')
+@click.option('--intervals', type=int, default=10, help='Number of intervals')
 @click.option(
     '--compare_default/--do_not_compare', default=False,
     help='Compare custom spline with default scipy spline'
@@ -33,12 +29,11 @@ def main(range_start, range_end, range_length, intervals, compare_default):
     to interpolate spline in specified intervals.
     """
     epsilon = (range_end - range_start) / range_length
-    spline = CubicSplineInterpolator(
-        range_start, range_end, epsilon, intervals, function)
+    spline = CubicSplineInterpolator(range_start, range_end, epsilon, intervals, function)
     arguments = spline.args
     interpolated_results = spline.results
 
-    function_results = [function(i) for i in arguments]
+    function_results = tuple(function(i) for i in arguments)
 
     spline.print_calculations()
 
@@ -55,12 +50,6 @@ def main(range_start, range_end, range_length, intervals, compare_default):
         plt.figure('Scipy spline interpolator')
         plt.plot(arguments, function_results, label='function')
         plt.plot(arguments, scipy_spline(arguments), label="S")
-        # plt.plot(
-        #     arguments, scipy_spline(arguments, 1), label="S'")
-        # plt.plot(
-        #     spline_arguments, scipy_spline(spline_arguments, 2), label="S''")
-        # plt.plot(
-        #     spline_arguments, scipy_spline(spline_arguments, 3), label="S'''")
 
     plt.legend()
     plt.show()
