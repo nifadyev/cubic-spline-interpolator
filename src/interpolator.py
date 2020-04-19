@@ -23,8 +23,7 @@ class Spline:
 class CubicSplineInterpolator():
     """Build cubic spline and interpolate it's values."""
 
-    def __init__(
-            self, left_boundary, right_boundary, epsilon, intervals, function):
+    def __init__(self, left_boundary, right_boundary, epsilon, intervals, function):
         """Initialize class instance with values.
 
         Attributes:
@@ -66,15 +65,7 @@ class CubicSplineInterpolator():
             result = self.function(value)
 
             function_results.append(result)
-            splines.append(
-                Spline(
-                    a=result,
-                    b=0.0,
-                    c=0.0,
-                    d=0.0,
-                    x=value,
-                )
-            )
+            splines.append(Spline(a=result, b=0.0, c=0.0, d=0.0, x=value))
 
         # Required conditions
         splines[0].c = splines[self.intervals - 1].c = 0.0
@@ -109,10 +100,11 @@ class CubicSplineInterpolator():
             alpha[i] = (-1 / (4 + alpha[i-1]))
             beta[i] = (
                 1 / (4 + alpha[i-1])
-                * (6 / step**2
-                   * (function_results[i + 1] - 2 * function_results[i]
-                      + function_results[i - 1])
-                   - beta[i - 1])
+                * (
+                    6 / step**2
+                    * (function_results[i + 1] - 2 * function_results[i] + function_results[i - 1])
+                    - beta[i - 1]
+                )
             )
 
         # Backward sweep - produce the solution
@@ -152,7 +144,7 @@ class CubicSplineInterpolator():
         They were calculated during building spline and interpolating data.
         """
         print('Function arguments and results:\n')
-        function_results = [self.function(arg) for arg in self.args]
+        function_results = (self.function(arg) for arg in self.args)
         self.print_args_and_results(self.args, function_results)
 
         print('\nSpline arguments and interpolated values:\n')
@@ -199,7 +191,5 @@ class CubicSplineInterpolator():
     def get_interpolation_error(self):
         """Max diff between function result and interpolated value."""
         res = iter(self.results)
-        return max(
-            self.function(arg) - next(res)
-            for arg in self.args
-        )
+
+        return max(self.function(arg) - next(res) for arg in self.args)
