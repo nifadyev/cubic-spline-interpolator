@@ -192,4 +192,4 @@ class CubicSplineInterpolator():
         """Max diff between function result and interpolated value."""
         res = iter(self.results)
 
-        return max(self.function(arg) - next(res) for arg in self.args)
+        return min(self.function(arg) - next(res) for arg in self.args)
