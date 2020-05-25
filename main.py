@@ -37,7 +37,7 @@ def main(range_start, range_end, range_length, intervals, compare_default):
 
     spline.print_calculations()
 
-    plt.figure('Interpolator')
+    plt.figure('Spline Interpolator')
     plt.title('Function: x * sin(x) / (1 + x * x)')
     plt.xlabel('x')
     plt.ylabel('y')
