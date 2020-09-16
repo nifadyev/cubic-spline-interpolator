@@ -1,5 +1,7 @@
 # Cubic Spline Interpolator
 
+![](https://img.shields.io/badge/python-v3.8-blue) ![](https://img.shields.io/badge/numpy-1.18.2-blue) ![](https://img.shields.io/badge/scipy-1.4.1-blue) ![](https://img.shields.io/badge/matplotlib-3.2.1-blue) ![](https://img.shields.io/badge/platform-windows%20%7C%20linux-lightgrey) ![](https://img.shields.io/badge/license-MIT-green)
+
 Tool for building splines based on pre-calculated (x, y) set of points.
 
 ## Requirements
@@ -8,19 +10,12 @@ Tool for building splines based on pre-calculated (x, y) set of points.
 - virtualenv (optional)
 
 ### Pip packages
-To install required packages use one of commands below
+Install required packages using `virtualenv`
 
-### Optional
-
-Create `virtualenv` and enter it
-
-`python3.8 -m virtualenv env && source env/bin/activate`
-
-#### Linux
-`python -m pip install -r requirements.txt`
-
-#### Windows
-TODO
+```bash
+python -m virtualenv env && source env/bin/activate
+python -m pip install -r requirements.txt
+```
 
 ## Usage
 
@@ -40,7 +35,7 @@ The set of available options are:
 
 Set range [-10.0, 20.0] with 50 intervals
 
-`python main.py --range_end 20 --intervals 50
+`python main.py --range_end 20 --intervals 50`
 
 ### Output
 
