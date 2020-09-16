@@ -2,11 +2,9 @@
 
 from dataclasses import dataclass
 from itertools import islice
+from typing import Callable, List, Tuple
 
 import numpy as np
-
-
-# TODO: Add type hints
 
 
 @dataclass
@@ -23,7 +21,14 @@ class Spline:
 class CubicSplineInterpolator():
     """Build cubic spline and interpolate it's values."""
 
-    def __init__(self, left_boundary, right_boundary, epsilon, intervals, function):
+    def __init__(
+            self,
+            left_boundary: float,
+            right_boundary: float,
+            epsilon: float,
+            intervals: int,
+            function: Callable
+    ) -> None:
         """Initialize class instance with values.
 
         Attributes:
@@ -46,7 +51,7 @@ class CubicSplineInterpolator():
         self.splines = self.build()
         self.args, self.results = self.interpolate()
 
-    def build(self):
+    def build(self) -> List[Spline]:
         """Build cubic splines.
 
         For finding coefficients tridiagonal matrix algorithm is used.
@@ -83,7 +88,8 @@ class CubicSplineInterpolator():
 
         return splines
 
-    def solve_equations_system(self, splines, step, function_results):
+    def solve_equations_system(
+            self, splines: List[Spline], step: float, function_results: List[float]) -> None:
         """Solve system of equations using tridiagonal matrix algorithm.
 
         Args:
@@ -111,7 +117,7 @@ class CubicSplineInterpolator():
         for i in range(self.intervals-2, 0, -1):
             splines[i].c = alpha[i] * splines[i+1].c + beta[i]
 
-    def interpolate(self):
+    def interpolate(self) -> Tuple[List[float], List[float]]:
         """Calculate interpolated values.
 
         Returns:
@@ -138,13 +144,13 @@ class CubicSplineInterpolator():
 
         return args, results
 
-    def print_calculations(self):
+    def print_calculations(self) -> None:
         """Print results of various calculations.
 
         They were calculated during building spline and interpolating data.
         """
         print('Function arguments and results:\n')
-        function_results = (self.function(arg) for arg in self.args)
+        function_results = [self.function(arg) for arg in self.args]
         self.print_args_and_results(self.args, function_results)
 
         print('\nSpline arguments and interpolated values:\n')
@@ -157,7 +163,7 @@ class CubicSplineInterpolator():
         print(f'\nInterpolation error: {error:.5f}')
 
     @staticmethod
-    def print_args_and_results(args, results):
+    def print_args_and_results(args: List[float], results: List[float]) -> None:
         """Pretty print arguments and results.
 
         Results can be produced by function or by interpolation.
@@ -165,15 +171,15 @@ class CubicSplineInterpolator():
         # Show only first 15 values and results
         args_slice = islice(args, 15)
         results_slice = islice(results, 15)
-        values = " | ".join(f'{value:7.3f}' for value in args_slice)
-        solutions = " | ".join(f'{result:7.3f}' for result in results_slice)
+        values = ' | '.join(f'{value:7.3f}' for value in args_slice)
+        solutions = ' | '.join(f'{result:7.3f}' for result in results_slice)
         vertical_line = '-' * (len(values) + len(' x | '))
 
         print(f' x | {values}')
         print(vertical_line)
         print(f' y | {solutions}')
 
-    def print_coefficients(self):
+    def print_coefficients(self) -> None:
         """Pretty print spline coefficients on each step."""
         table_header = 'Step|    x    |    a    |    b    |    c    |    d    '
         splines_slice = islice(self.splines, 10)
@@ -188,7 +194,7 @@ class CubicSplineInterpolator():
                 f' | {spline.b:7.3f} | {spline.c:7.3f} | {spline.d:7.3f}'
             )
 
-    def get_interpolation_error(self):
+    def get_interpolation_error(self) -> float:
         """Max diff between function result and interpolated value."""
         res = iter(self.results)
 
