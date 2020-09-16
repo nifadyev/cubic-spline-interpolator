@@ -8,7 +8,7 @@ import click
 from src.interpolator import CubicSplineInterpolator
 
 
-def function(argument):
+def function(argument: float) -> float:
     """Find function's result with specified argument."""
     return argument * np.sin(argument) / (1 + argument**2)
 
@@ -22,11 +22,16 @@ def function(argument):
     '--compare_default/--do_not_compare', default=False,
     help='Compare custom spline with default scipy spline'
 )
-def main(range_start, range_end, range_length, intervals, compare_default):
+def main(
+        range_start: float,
+        range_end: float,
+        range_length: int,
+        intervals: int,
+        compare_default: bool
+) -> None:
     """Build spline and interpolate it's values.
 
-    Set range boundaries for CubicSplineInterpolator
-    to interpolate spline in specified intervals.
+    Set range boundaries for CubicSplineInterpolator to interpolate spline in specified intervals.
     """
     epsilon = (range_end - range_start) / range_length
     spline = CubicSplineInterpolator(range_start, range_end, epsilon, intervals, function)
