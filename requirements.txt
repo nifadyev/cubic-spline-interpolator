@@ -1,5 +1,5 @@
 click==7.1.1
 matplotlib==3.2.1
-numpy==1.18.2
+numpy==1.22.0
 pytest==5.4.1
 scipy==1.4.1
